@@ -199,7 +199,7 @@ tr:hover td{background:#fafafa}
     <input type="password" id="passInput" placeholder="🔑 Mot de passe">
     <button id="loginBtn">SE CONNECTER</button>
     <div class="login-err" id="loginErr"></div>
-    <div class="login-loading" id="loginLoading">🔄 Connexion à Firebase...</div>
+    <div id="loginLoading"></div>
   </div>
 </div>
 
@@ -997,7 +997,7 @@ window.addEventListener('DOMContentLoaded', function(){
   // Attendre Firebase puis charger les comptes
   function onFirebaseReady() {
     FIREBASE_OK = true;
-    $id('loginLoading').textContent = '✅ Firebase connecté';
+  $id('loginLoading').textContent = '';
     setTimeout(function(){ $id('loginLoading').textContent=''; }, 2000);
     chargerComptes();
   }
@@ -1009,7 +1009,7 @@ window.addEventListener('DOMContentLoaded', function(){
     // Timeout fallback si Firebase ne répond pas
     setTimeout(function(){
       if(!FIREBASE_OK){
-        $id('loginLoading').textContent='⚠️ Mode hors ligne (localStorage)';
+       $id('loginLoading').textContent='';
         chargerComptes();
       }
     }, 5000);
