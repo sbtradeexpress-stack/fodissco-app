@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fodissco Express</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyBbmKXl_qvjo1IrX_olhFOYjIzZ1_3ViII",
+  authDomain: "fodissco-express.firebaseapp.com",
+  projectId: "fodissco-express",
+  storageBucket: "fodissco-express.firebasestorage.app",
+  messagingSenderId: "801036833909",
+  appId: "1:801036833909:web:8380d391455cfa5c75d43c"
+};
+const app = initializeApp(firebaseConfig);
+const dbf = getFirestore(app);
+window.fbSave = async function(data){
+  try{ await setDoc(doc(dbf,"fodissco","main"), data); }
+  catch(e){ localStorage.setItem("fodissco_v3", JSON.stringify(data)); }
+};
+window.fbLoad = async function(){
+  try{ const s=await getDoc(doc(dbf,"fodissco","main")); if(s.exists()) return s.data(); return null; }
+  catch(e){ return null; }
+};
+window.fbListen = function(cb){
+  return onSnapshot(doc(dbf,"fodissco","main"),(s)=>{ if(s.exists()) cb(s.data()); });
+};
+window.fbSaveComptes = async function(c){
+  try{ await setDoc(doc(dbf,"fodissco","comptes"), c); }
+  catch(e){}
+  localStorage.setItem("fodissco_comptes", JSON.stringify(c));
+};
+window.fbLoadComptes = async function(){
+  try{ const s=await getDoc(doc(dbf,"fodissco","comptes")); if(s.exists()) return s.data(); return null; }
+  catch(e){ return null; }
+};
+window.FB_READY = true;
+document.dispatchEvent(new Event("firebase-ready"));
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--orange:#e67e22;--dark:#2c3e50;--light:#f8f9fa;--green:#27ae60;--red:#e74c3c;--blue:#1a73e8;--font:"Segoe UI",system-ui,sans-serif}
+body{font-family:var(--font);background:var(--light);display:flex;flex-direction:column;min-height:100vh;font-size:13px;color:#1e1e1e}
+#loginOverlay{position:fixed;inset:0;background:#2c3e50;display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-box{background:#34495e;border-radius:14px;padding:42px 38px;width:380px;text-align:center}
+.login-box h1{color:var(--orange);font-size:22px;font-weight:700;letter-spacing:1px;margin-bottom:6px}
+.login-box p{color:#bdc3c7;font-size:12px;margin-bottom:28px}
+.login-box input{width:100%;height:48px;border:1px solid #4a6375;border-radius:8px;padding:0 16px;font-size:14px;background:#2c3e50;color:#fff;margin-bottom:10px;outline:none}
+.login-box input::placeholder{color:#7f8c8d}
+.login-box button{width:100%;height:48px;background:var(--orange);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px}
+.login-box button:hover{background:#d35400}
+.login-err{color:#e74c3c;font-size:12px;margin-top:10px;min-height:16px}
+#app{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:var(--dark);height:52px;display:flex;align-items:center;position:sticky;top:0;z-index:100}
+.topbar-sep{height:3px;background:var(--orange)}
+.menu-btn{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 16px;height:52px;display:flex;align-items:center}
+.menu-btn:hover{background:#1558b0}
+.topbar-title{flex:1;text-align:center;color:var(--orange);font-size:16px;font-weight:700;letter-spacing:1px}
+.sync-indicator{padding:0 12px;font-size:11px;color:#bdc3c7;display:flex;align-items:center;gap:5px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#27ae60;display:inline-block}
+.sync-dot.saving{background:#f39c12;animation:pulse .6s infinite}
+.sync-dot.error{background:#e74c3c}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:220px;background:var(--dark);flex-shrink:0;transition:width .22s,min-width .22s;overflow:hidden;min-width:220px}
+.sidebar.closed{width:0;min-width:0}
+.sidebar-inner{width:220px;padding:12px 0}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:11px 16px;background:transparent;border:none;color:#ecf0f1;font-size:13px;cursor:pointer;transition:background .15s;text-align:left;white-space:nowrap}
+.nav-btn:hover,.nav-btn.active{background:var(--orange)}
+.main-area{flex:1;overflow-y:auto;background:var(--light)}
+.page{display:none;padding:22px 26px}
+.page.active{display:block}
+.stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
+.stat-card{border-radius:12px;padding:14px 16px;border:1px solid #ccc}
+.stat-card .lbl{font-size:12px;color:#555;margin-bottom:6px}
+.stat-card .val{font-family:"Consolas",monospace;font-size:16px;font-weight:700}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sec-hdr h2{font-size:18px;font-weight:700;color:#000}
+.form-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:#fff;padding:12px 14px;border-radius:10px;border:1px solid #ddd;margin-bottom:14px}
+.form-row input{height:40px;border:1px solid #ccc;border-radius:6px;padding:0 10px;font-size:13px;outline:none;background:#fff;color:#1e1e1e}
+.form-row input:focus{border-color:var(--blue)}
+.btn{height:40px;padding:0 14px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-green{background:var(--green);color:#fff}
+.btn-orange{background:var(--orange);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-grey{background:#eee;color:#333}
+.btn-sm{height:30px;padding:0 10px;font-size:12px}
+.tbl-wrap{background:#fff;border:1px solid #ddd;border-radius:10px;overflow:hidden;margin-top:10px}
+table{width:100%;border-collapse:collapse}
+th{background:var(--dark);color:#fff;padding:9px 13px;text-align:left;font-size:12px;font-weight:600;white-space:nowrap}
+td{padding:8px 13px;border-bottom:1px solid #f2f2f2;font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.stock-row{background:#fff;border:1px solid #eee;border-radius:8px;padding:9px 14px;margin-bottom:5px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;cursor:pointer}
+.stock-row:hover{border-color:#aaa}
+.stock-row.low{border-color:var(--red)!important;border-width:2px}
+.stock-name{font-weight:700;font-size:13px;flex:1;min-width:200px}
+.stock-nums{display:flex;gap:14px;align-items:center;font-family:"Consolas",monospace;font-size:12px;font-weight:700}
+.syn-box{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px 16px;margin-bottom:12px}
+.syn-line{display:flex;flex-wrap:wrap;align-items:center;border-radius:8px;padding:6px 12px;margin-bottom:6px}
+.syn-line:last-child{margin-bottom:0}
+.syn-tag{font-size:11px;font-weight:700;color:var(--dark);padding:0 10px;min-width:100px}
+.syn-item{padding:4px 14px;border-right:1px solid rgba(0,0,0,.08)}
+.syn-item:last-child{border-right:none}
+.syn-lbl{font-size:11px;color:#777}
+.syn-val{font-family:"Consolas",monospace;font-size:13px;font-weight:700}
+.debt-card{background:#fff;border:1px solid #eee;border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.debt-info{flex:1;min-width:200px}
+.debt-mnt{min-width:150px;text-align:right}
+.debt-btns{display:flex;flex-direction:column;gap:4px}
+.log-row{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #f5f5f5;font-size:12px;flex-wrap:wrap}
+.log-row:last-child{border-bottom:none}
+.log-date{font-family:"Consolas",monospace;color:#444;min-width:130px}
+.log-type{font-weight:700;min-width:110px;text-transform:uppercase}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.b-green{background:#d4edda;color:#006600}
+.b-red{background:#f8d7da;color:#721c24}
+.b-blue{background:#cce5ff;color:#004085}
+.b-orange{background:#fff3cd;color:#7f6000}
+.ech-card{background:#fff;border:1px solid #eee;border-radius:8px;padding:10px 14px;margin-bottom:6px}
+.ech-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ech-badge{padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid;display:inline-flex;align-items:center;gap:6px}
+.j-total{background:#d4edda;border:1px solid #c3e6cb;border-radius:10px;padding:16px;text-align:center;margin-bottom:14px}
+.jval{font-family:"Consolas",monospace;font-size:20px;font-weight:700;color:#155724}
+.cmd-row{background:#fff;border:1px solid #f5c6cb;border-radius:10px;padding:12px 16px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:28px 28px 22px;min-width:340px;max-width:500px;width:92%;position:relative;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:15px;font-weight:700;color:var(--dark);margin-bottom:16px}
+.modal input{width:100%;height:40px;border:1px solid #ccc;border-radius:6px;padding:0 12px;font-size:13px;margin-bottom:10px;outline:none}
+.modal input:focus{border-color:var(--blue)}
+.mlbl{font-size:12px;color:#555;margin-bottom:3px}
+.modal-close{position:absolute;top:10px;right:14px;background:none;border:none;font-size:22px;cursor:pointer;color:#666}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.bilan-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.bilan-card{border-radius:12px;padding:14px 16px;border:1px solid #ccc}
+.bilan-card .lbl{font-size:11px;color:#555;margin-bottom:5px}
+.bilan-card .val{font-family:"Consolas",monospace;font-size:16px;font-weight:700}
+.filtre-bar{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;background:#fff;padding:9px 12px;border-radius:8px;border:1px solid #ddd}
+.filtre-btn{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid;background:transparent}
+.pieces-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8f9fa;border-radius:8px;border:1px solid #eee;margin-bottom:6px}
+.pieces-item:hover{border-color:#aaa;background:#fff}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="loginOverlay">
+  <div class="login-box">
+    <h1>FODISSCO EXPRESS</h1>
+    <p>Acces securise</p>
+    <input type="text" id="userInput" placeholder="Identifiant">
+    <input type="password" id="passInput" placeholder="Mot de passe">
+    <button id="loginBtn">SE CONNECTER</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+<div id="app">
+  <div class="topbar">
+    <button class="menu-btn" id="menuBtn"><i class="ti ti-menu-2"></i></button>
+    <div class="topbar-title">FODISSCO EXPRESS</div>
+    <div class="sync-indicator"><span class="sync-dot" id="syncDot"></span><span id="syncText">OK</span></div>
+    <div style="padding:0 8px;font-size:11px;color:#bdc3c7" id="topDate"></div>
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="layout">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <button class="nav-btn active" data-page="dash">Dashboard</button>
+        <button class="nav-btn" data-page="stock">Stocks</button>
+        <button class="nav-btn" data-page="cmd">Commandes</button>
+        <button class="nav-btn" data-page="trans">Transactions</button>
+        <button class="nav-btn" data-page="dette">Dettes</button>
+        <button class="nav-btn" data-page="ech">Echeances</button>
+        <button class="nav-btn" data-page="bilan">Bilan Mensuel</button>
+        <button class="nav-btn" data-page="journal">Vente Journaliere</button>
+        <button class="nav-btn" id="changePassBtn" style="margin-top:auto;color:#e74c3c">Changer MDP</button>
+      </div>
+    </div>
+    <div class="main-area" id="mainArea">
+      <div class="page active" id="page-dash">
+        <div class="sec-hdr"><h2>TABLEAU DE BORD</h2><button class="btn btn-blue btn-sm" id="dashRefreshBtn">Actualiser</button></div>
+        <div class="stat-grid">
+          <div class="stat-card" style="background:#d1e9f1"><div class="lbl">Tresorerie</div><div class="val" id="d-tres" style="color:#1e1e1e">0 F</div></div>
+          <div class="stat-card" style="background:#d4edda"><div class="lbl">CA Global</div><div class="val" id="d-ca" style="color:#006600">0 F</div></div>
+          <div class="stat-card" style="background:#f8d7da"><div class="lbl">Depenses</div><div class="val" id="d-dep" style="color:#990000">0 F</div></div>
+          <div class="stat-card" style="background:#fff3cd"><div class="lbl">Dettes</div><div class="val" id="d-dette" style="color:#7f6000">0 F</div></div>
+          <div class="stat-card" style="background:#e2e3e5"><div class="lbl">Benefice</div><div class="val" id="d-benef" style="color:#0000cc">0 F</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 3fr;gap:16px">
+          <div style="background:#fff;border:2px solid #ddd;border-radius:10px;padding:14px">
+            <div style="font-size:13px;font-weight:700;color:var(--dark);margin-bottom:10px">CA vs DEPENSES (6 mois)</div>
+            <div style="position:relative;height:230px"><canvas id="dashChart"></canvas></div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#000;margin-bottom:8px">JOURNAL RECENT</div>
+            <div id="logList" style="background:#fff;border:2px solid #ddd;border-radius:10px;padding:10px;max-height:300px;overflow-y:auto"></div>
+          </div>
+        </div>
+      </div>
+      <div class="page" id="page-stock">
+        <div class="form-row">
+          <input type="text" id="s-search" placeholder="Rechercher..." style="width:170px">
+          <input type="text" id="s-marque" placeholder="Marque" style="width:95px">
+          <input type="text" id="s-desig" placeholder="Designation" style="width:145px">
+          <input type="number" id="s-qte" placeholder="Qte" style="width:60px">
+          <input type="number" id="s-pa" placeholder="P.Achat" style="width:85px">
+          <input type="number" id="s-pv" placeholder="P.Vente" style="width:85px">
+          <input type="number" id="s-seuil" placeholder="Seuil" style="width:60px">
+          <button class="btn btn-blue" id="addStockBtn">+ STOCK</button>
+          <button class="btn btn-green" id="sellStockBtn">VENDRE</button>
+        </div>
+        <div class="syn-box">
+          <div class="syn-line" style="background:#eaf4fb">
+            <div class="syn-tag">QUANTITES</div>
+            <div class="syn-item"><div class="syn-lbl">Global achete</div><div class="syn-val" id="syn-global" style="color:#2980b9">--</div></div>
+            <div class="syn-item"><div class="syn-lbl">En stock actuel</div><div class="syn-val" id="syn-actuel" style="color:#27ae60">--</div></div>
+            <div class="syn-item"><div class="syn-lbl">Total vendu</div><div class="syn-val" id="syn-vendu" style="color:#e67e22">--</div></div>
+            <div class="syn-item"><div class="syn-lbl">En dette cours</div><div class="syn-val" id="syn-dette-qte" style="color:#e74c3c">--</div></div>
+          </div>
+          <div class="syn-line" style="background:#eafaf1">
+            <div class="syn-tag">VALEURS</div>
+            <div class="syn-item"><div class="syn-lbl">Valeur stock</div><div class="syn-val" id="syn-val-stock" style="color:#27ae60">--</div></div>
+            <div class="syn-item"><div class="syn-lbl">Valeur vendue</div><div class="syn-val" id="syn-val-vendu" style="color:#2980b9">--</div></div>
+            <div class="syn-item"><div class="syn-lbl">Valeur en dette</div><div class="syn-val" id="syn-val-dette" style="color:#e74c3c">--</div></div>
+            <div class="syn-item"><div class="syn-lbl">Capital total</div><div class="syn-val" id="syn-capital" style="color:#8e44ad">--</div></div>
+          </div>
+        </div>
+        <div id="stockList"></div>
+      </div>
+      <div class="page" id="page-cmd">
+        <div class="sec-hdr">
+          <h2>ARTICLES A COMMANDER</h2>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span id="cmd-time" style="font-size:11px;color:#7f8c8d"></span>
+            <button class="btn btn-blue btn-sm" id="cmdRefreshBtn">Actualiser</button>
+            <button class="btn btn-green btn-sm" id="cmdPrintBtn">PDF</button>
+          </div>
+        </div>
+        <div id="cmdList"></div>
+      </div>
+      <div class="page" id="page-trans">
+        <div class="form-row">
+          <input type="text" id="t-search" placeholder="Chercher flux..." style="width:210px">
+          <input type="text" id="t-desc" placeholder="Description..." style="flex:1;min-width:170px">
+          <input type="number" id="t-mont" placeholder="Montant" style="width:105px">
+          <button class="btn btn-red" id="addTransBtn">VALIDER</button>
+        </div>
+        <div id="transList"></div>
+      </div>
+      <div class="page" id="page-dette">
+        <div class="form-row">
+          <input type="text" id="d-search" placeholder="Rechercher..." style="width:130px">
+          <input type="text" id="d-nom" placeholder="Client" style="width:95px">
+          <input type="text" id="d-ch" placeholder="Chassis" style="width:80px">
+          <input type="text" id="d-tel" placeholder="Tel" style="width:85px">
+          <input type="text" id="d-pieces" placeholder="Pieces (cliquez sur PIECES)" style="flex:1;min-width:190px" readonly>
+          <button class="btn btn-blue" id="openPiecesBtn">PIECES</button>
+          <button class="btn btn-red btn-sm" id="annulerPanierBtn" style="display:none">X</button>
+          <input type="text" id="d-gest" placeholder="Gest." style="width:75px">
+          <input type="text" id="d-ech" placeholder="Ech: Lundi;Mardi ou 01/06/26" style="width:220px">
+          <input type="number" id="d-accord" placeholder="Accorde" style="width:80px">
+          <button class="btn btn-orange" id="addDetteBtn">SAVE</button>
+        </div>
+        <div id="detteList"></div>
+      </div>
+      <div class="page" id="page-ech">
+        <div style="background:var(--dark);border-radius:12px;display:flex;align-items:center;justify-content:space-between;padding:12px 20px;margin-bottom:10px">
+          <span style="color:var(--orange);font-size:18px;font-weight:700">SUIVI DES ECHEANCES</span>
+          <button class="btn btn-blue btn-sm" id="echRefreshBtn">Actualiser</button>
+        </div>
+        <div class="filtre-bar" id="filtreBtns"></div>
+        <div id="echList"></div>
+      </div>
+      <div class="page" id="page-bilan">
+        <div style="background:var(--dark);border-radius:12px;display:flex;align-items:center;justify-content:space-between;padding:14px 22px;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <span style="color:var(--orange);font-size:20px;font-weight:700">BILAN MENSUEL</span>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <label style="color:#fff;font-size:12px">Mois :</label>
+            <input type="text" id="b-mois" style="width:55px;height:36px;border-radius:6px;border:1px solid #555;background:#1e2e3e;color:#fff;padding:0 8px;font-size:13px">
+            <label style="color:#fff;font-size:12px">Annee :</label>
+            <input type="text" id="b-annee" style="width:70px;height:36px;border-radius:6px;border:1px solid #555;background:#1e2e3e;color:#fff;padding:0 8px;font-size:13px">
+            <button class="btn btn-orange btn-sm" id="bilanCalcBtn">CALCULER</button>
+          </div>
+        </div>
+        <div class="bilan-grid" id="bilanCards" style="display:none">
+          <div class="bilan-card" style="background:#d4edda"><div class="lbl">Chiffre Affaires</div><div class="val" id="b-ca" style="color:#006600">--</div></div>
+          <div class="bilan-card" style="background:#f8d7da"><div class="lbl">Depenses Totales</div><div class="val" id="b-dep" style="color:#990000">--</div></div>
+          <div class="bilan-card" style="background:#e2e3e5"><div class="lbl">Benefice Net</div><div class="val" id="b-ben" style="color:#0000cc">--</div></div>
+          <div class="bilan-card" style="background:#fff3cd"><div class="lbl">Nb Transactions</div><div class="val" id="b-nb" style="color:#7f6000">--</div></div>
+        </div>
+        <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <span style="font-size:13px;font-weight:700;color:var(--dark)">Detail des operations du mois</span>
+            <span id="b-periode" style="font-size:11px;color:#7f8c8d"></span>
+          </div>
+          <div id="bilanDetail" style="max-height:320px;overflow-y:auto"><div style="color:#aaa;text-align:center;padding:30px">Selectionnez un mois et cliquez sur CALCULER</div></div>
+        </div>
+      </div>
+      <div class="page" id="page-journal">
+        <div style="background:#fff;border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid #ddd">
+          <span style="font-size:17px;font-weight:700">VENTE JOURNALIERE</span>
+          <input type="text" id="j-date" placeholder="JJ/MM/AAAA" style="width:130px;height:38px;border:1px solid #ccc;border-radius:6px;padding:0 10px;font-size:13px">
+          <button class="btn btn-blue btn-sm" id="journalCalcBtn">VALIDER</button>
+          <button class="btn btn-green btn-sm" id="journalPrintBtn">PDF</button>
+        </div>
+        <div class="j-total"><div style="font-size:13px;color:#155724;margin-bottom:4px">Total Encaisse</div><div class="jval" id="j-total">0 F</div></div>
+        <div id="journalList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- MODALS -->
+<div class="modal-bg" id="modalMDP">
+  <div class="modal" style="max-width:380px">
+    <button class="modal-close" id="closeMDPBtn">x</button>
+    <h3>Changer les mots de passe</h3>
+    <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px;margin-bottom:14px;font-size:12px;color:#7f6000">Reserve a l administrateur uniquement</div>
+    <div class="mlbl">Nouveau MDP Admin</div><input type="password" id="new-mdp-admin" placeholder="Nouveau mot de passe admin">
+    <div class="mlbl">Nouveau MDP Vendeur</div><input type="password" id="new-mdp-vendeur" placeholder="Nouveau mot de passe vendeur">
+    <div class="mlbl">Confirmer avec votre MDP actuel</div><input type="password" id="confirm-mdp-actuel" placeholder="Votre mot de passe actuel">
+    <div id="mdp-err" style="color:#e74c3c;font-size:12px;min-height:16px;margin-bottom:8px"></div>
+    <div class="modal-btns">
+      <button class="btn btn-grey" id="cancelMDPBtn">Annuler</button>
+      <button class="btn btn-orange" id="confirmMDPBtn">ENREGISTRER</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="modalPieces">
+  <div class="modal" style="max-width:420px;width:95%">
+    <button class="modal-close" id="closePiecesBtn">x</button>
+    <h3>Selectionner les pieces</h3>
+    <input type="text" id="pieces-search" placeholder="Rechercher une piece..." style="margin-bottom:12px" oninput="filtrerPieces()">
+    <div id="pieces-list" style="max-height:320px;overflow-y:auto;margin-bottom:12px"></div>
+    <div style="font-size:15px;font-weight:700;color:#27ae60;text-align:center;padding:8px 0;border-top:1px solid #eee" id="pieces-total">Total : 0 F</div>
+    <div class="modal-btns">
+      <button class="btn btn-grey" id="cancelPiecesBtn">Annuler</button>
+      <button class="btn btn-orange" id="confirmPiecesBtn">VALIDER LA SELECTION</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="modalPay">
+  <div class="modal">
+    <button class="modal-close" id="closePayBtn">x</button>
+    <h3 id="payTitle">Encaisser un paiement</h3>
+    <p id="payInfo" style="font-size:13px;color:#666;margin-bottom:14px"></p>
+    <div class="mlbl">Montant verse :</div>
+    <input type="number" id="payAmount" placeholder="Montant...">
+    <div class="modal-btns">
+      <button class="btn btn-grey" id="cancelPayBtn">Annuler</button>
+      <button class="btn btn-green" id="confirmPayBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="modalModif">
+  <div class="modal">
+    <button class="modal-close" id="closeModifBtn">x</button>
+    <h3>MODIFIER LA DETTE</h3>
+    <div class="mlbl">Nom client</div><input type="text" id="md-nom">
+    <div class="mlbl">Chassis</div><input type="text" id="md-ch">
+    <div class="mlbl">Telephone</div><input type="text" id="md-tel">
+    <div class="mlbl">Gestionnaire</div><input type="text" id="md-gest">
+    <div class="mlbl">Echeance</div><input type="text" id="md-ech">
+    <div class="mlbl">Montant accorde</div><input type="number" id="md-accord">
+    <div class="modal-btns">
+      <button class="btn btn-grey" id="cancelModifBtn">Annuler</button>
+      <button class="btn btn-orange" id="confirmModifBtn">ENREGISTRER</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="modalEch">
+  <div class="modal">
+    <button class="modal-close" id="closeEchBtn">x</button>
+    <h3 id="echTitle">Paiement Echeance</h3>
+    <p id="echInfo" style="font-size:13px;color:#666;margin-bottom:14px"></p>
+    <div class="mlbl">Montant verse :</div>
+    <input type="number" id="echAmount" placeholder="Montant...">
+    <div class="modal-btns">
+      <button class="btn btn-grey" id="cancelEchBtn">Annuler</button>
+      <button class="btn btn-green" id="confirmEchBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+<script>
+var CAPITAL_FIXE=2000000;
+var DB={stock:[],transactions:[],dettes:[],dette_details:[],logs:[],seq:{stock:1,trans:1,dette:1,dd:1,log:1}};
+var FB_OK=false;
+var saveTO=null;
+var ROLE="admin";
+var tentatives=3;
+var COMPTES={"fodissco":{mdp:"fodissco",role:"admin"},"vendeur":{mdp:"vendeur",role:"vendeur"}};
+var PAGES=["dash","stock","cmd","trans","dette","ech","bilan","journal"];
+var dashChart=null;
+var sidebarOpen=true;
+var selTemp={};
+var totalCalc=0;
+var payId=null;
+var modifId=null;
+var echId=null,echNum=null,echMont=null,echNom=null,echRest=null;
+var filtreActif="tous";
+
+function $(i){return document.getElementById(i);}
+function fmt(n){return Number(n||0).toLocaleString("fr-FR",{maximumFractionDigits:0})+" F";}
+function nowStr(){return new Date().toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});}
+function todayStr(){return new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"});}
+function openM(id){$(id).classList.add("open");}
+function closeM(id){$(id).classList.remove("open");}
+function sync(s){
+  var dot=$("syncDot"),txt=$("syncText");if(!dot)return;
+  if(s=="saving"){dot.className="sync-dot saving";txt.textContent="Sauvegarde...";}
+  else if(s=="ok"){dot.className="sync-dot";txt.textContent="Synchronise";}
+  else{dot.className="sync-dot error";txt.textContent="Hors ligne";}
+}
+
+function dbSave(){
+  clearTimeout(saveTO);
+  saveTO=setTimeout(function(){
+    sync("saving");
+    var data=JSON.parse(JSON.stringify(DB));
+    localStorage.setItem("fodissco_v3",JSON.stringify(data));
+    if(FB_OK&&window.fbSave){window.fbSave(data).then(function(){sync("ok");}).catch(function(){sync("error");});}
+    else{sync("ok");}
+  },800);
+}
+
+async function dbLoad(){
+  if(FB_OK&&window.fbLoad){var d=await window.fbLoad();if(d&&d.stock){DB=d;return;}}
+  var raw=localStorage.getItem("fodissco_v3");
+  if(raw){try{DB=JSON.parse(raw);return;}catch(e){}}
+  initDemo();
+}
+
+function initDemo(){
+  DB.stock=[
+    {id:1,marque:"TOYOTA",designation:"PLAQUETTE FREIN AV",qte:8,p_achat:15000,p_vente:22000,seuil:3},
+    {id:2,marque:"NISSAN",designation:"FILTRE A HUILE",qte:2,p_achat:5000,p_vente:8000,seuil:3},
+    {id:3,marque:"HONDA",designation:"DISQUE FREIN AV",qte:5,p_achat:35000,p_vente:55000,seuil:2},
+    {id:4,marque:"FORD",designation:"COURROIE DISTRIBUTION",qte:1,p_achat:12000,p_vente:18000,seuil:2},
+    {id:5,marque:"BMW",designation:"FILTRE HABITACLE",qte:12,p_achat:7000,p_vente:12000,seuil:4}
+  ];
+  DB.transactions=[];DB.dettes=[];DB.dette_details=[];DB.logs=[];
+  DB.seq={stock:6,trans:1,dette:1,dd:1,log:1};
+  dbSave();
+}
+
+function log(action,details){
+  DB.logs.unshift({id:DB.seq.log++,action_type:action,details:details,date_heure:nowStr()});
+  if(DB.logs.length>100)DB.logs.pop();
+  dbSave();
+  if($("logList"))refreshLogs();
+}
+
+function logTrans(pid,type,desc,montant,qte){
+  DB.transactions.unshift({id:DB.seq.trans++,produit_id:pid,type:type,desc:desc,montant:montant,quantite:qte,date:nowStr()});
+  log(type,desc+" -- "+fmt(montant));
+  dbSave();
+}
+
+async function chargerComptes(){
+  if(FB_OK&&window.fbLoadComptes){var c=await window.fbLoadComptes();if(c&&c.fodissco){COMPTES=c;return;}}
+  var s=localStorage.getItem("fodissco_comptes");
+  if(s){try{COMPTES=JSON.parse(s);}catch(e){}}
+}
+
+function tryLogin(){
+  var user=$("userInput").value.trim().toLowerCase();
+  var pwd=$("passInput").value;
+  if(COMPTES[user]&&COMPTES[user].mdp===pwd){
+    ROLE=COMPTES[user].role;
+    $("loginOverlay").style.display="none";
+    $("app").style.display="flex";
+    dbLoad().then(function(){initApp();});
+  } else {
+    tentatives--;
+    if(tentatives>0){
+      $("loginErr").textContent="Identifiant ou mot de passe incorrect. "+tentatives+" tentative(s) restante(s).";
+      $("passInput").value="";
+    } else {
+      alert("Trop de tentatives.");
+      $("passInput").disabled=true;
+      $("loginBtn").disabled=true;
+    }
+  }
+}
+
+function navigate(page){
+  if(ROLE==="vendeur"&&["dash","cmd","trans","bilan"].indexOf(page)>=0)page="stock";
+  PAGES.forEach(function(p){$("page-"+p).classList.toggle("active",p===page);});
+  document.querySelectorAll(".nav-btn").forEach(function(b,i){b.classList.toggle("active",PAGES[i]===page);});
+  if(page==="dash")updateDash();
+  if(page==="stock"){renderStock();updateSynthese();}
+  if(page==="cmd")renderCmd();
+  if(page==="trans")renderTrans();
+  if(page==="dette")renderDettes();
+  if(page==="ech"){buildFiltres();renderEch();}
+  if(page==="bilan")initBilanDates();
+  if(page==="journal")$("j-date").value=todayStr();
+}
+
+function toggleSidebar(){sidebarOpen=!sidebarOpen;$("sidebar").classList.toggle("closed",!sidebarOpen);}
+
+function getCA(){return DB.transactions.filter(function(t){return t.type==="VENTE"&&!t.desc.startsWith("Dette sold");}).reduce(function(s,t){return s+t.montant;},0);}
+function getDep(){return DB.transactions.filter(function(t){return t.type==="ACHAT"||t.type==="DIVERS";}).reduce(function(s,t){return s+t.montant;},0);}
+function getTotDettes(){return DB.dettes.reduce(function(s,d){return s+d.montant_restant;},0);}
+
+function updateDash(){
+  var ca=getCA(),dep=getDep(),dettes=getTotDettes();
+  $("d-tres").textContent=fmt(CAPITAL_FIXE+ca-dep);
+  $("d-ca").textContent=fmt(ca);
+  $("d-dep").textContent=fmt(dep);
+  $("d-dette").textContent=fmt(dettes);
+  $("d-benef").textContent=fmt(ca-dep);
+  refreshLogs();
+  drawChart();
+}
+
+function refreshLogs(){
+  var el=$("logList");if(!el)return;
+  var items=DB.logs.filter(function(l){return !l.details.includes("Dette sold");});
+  el.innerHTML=items.slice(0,50).map(function(l){
+    var col=l.action_type==="VENTE"?"#27ae60":l.action_type==="ACHAT"?"#1a73e8":"#e74c3c";
+    return "<div class=log-row><span class=log-date>["+l.date_heure+"]</span><span class=log-type style=color:"+col+">"+l.action_type+"</span><span style=color:#222;font-size:12px>"+l.details+"</span></div>";
+  }).join("")||"<div style=color:#aaa;padding:16px;text-align:center>Aucun journal</div>";
+}
+
+function drawChart(){
+  var labels=[],caD=[],depD=[];
+  for(var i=5;i>=0;i--){
+    var d=new Date();d.setMonth(d.getMonth()-i);
+    var mm=String(d.getMonth()+1).padStart(2,"0");
+    var yyyy=d.getFullYear();
+    var pat="/"+mm+"/"+yyyy;
+    labels.push(d.toLocaleDateString("fr-FR",{month:"short",year:"2-digit"}));
+    caD.push(DB.transactions.filter(function(t){return t.type==="VENTE"&&t.date.includes(pat)&&!t.desc.startsWith("Dette sold");}).reduce(function(s,t){return s+t.montant;},0));
+    depD.push(DB.transactions.filter(function(t){return(t.type==="ACHAT"||t.type==="DIVERS")&&t.date.includes(pat);}).reduce(function(s,t){return s+t.montant;},0));
+  }
+  var ctx=$("dashChart").getContext("2d");
+  if(dashChart)dashChart.destroy();
+  dashChart=new Chart(ctx,{type:"bar",data:{labels:labels,datasets:[{label:"CA",data:caD,backgroundColor:"rgba(46,204,113,.8)",borderRadius:4},{label:"Dep",data:depD,backgroundColor:"rgba(231,76,60,.8)",borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false}});
+}
+
+function addStock(){
+  var m=$("s-marque").value.trim().toUpperCase();
+  var d=$("s-desig").value.trim().toUpperCase();
+  var q=parseInt($("s-qte").value)||0;
+  var pa=parseFloat($("s-pa").value)||0;
+  var pv=parseFloat($("s-pv").value)||0;
+  if(!m||!d||q<=0){alert("Remplissez les champs.");return;}
+  var ex=DB.stock.find(function(s){return s.marque===m&&s.designation===d;});
+  if(ex){ex.qte+=q;ex.p_achat=pa;ex.p_vente=pv;logTrans(ex.id,"ACHAT","Reappro: "+m+" "+d,q*pa,q);alert("Stock augmente de "+q+" pcs.");}
+  else{
+    var sv=parseInt(prompt("Seuil minimum d alerte pour "+m+" "+d+" ?","3"))||3;
+    var id=DB.seq.stock++;
+    DB.stock.push({id:id,marque:m,designation:d,qte:q,p_achat:pa,p_vente:pv,seuil:sv});
+    logTrans(id,"ACHAT","Nouveau Stock: "+m+" "+d,q*pa,q);
+    dbSave();
+    alert(m+" "+d+" enregistre, seuil: "+sv);
+  }
+  ["s-marque","s-desig","s-qte","s-pa","s-pv","s-seuil"].forEach(function(i){$(i).value="";});
+  renderStock();updateSynthese();renderTrans();renderCmd();updateDash();
+}
+
+function sellStock(){
+  var m=$("s-marque").value.trim().toUpperCase();
+  var d=$("s-desig").value.trim().toUpperCase();
+  var q=parseInt($("s-qte").value)||0;
+  var pv=parseFloat($("s-pv").value)||0;
+  if(!m||!d||q<=0){alert("Selectionnez un produit et une quantite.");return;}
+  var ex=DB.stock.find(function(s){return s.marque===m&&s.designation===d;});
+  if(!ex){alert("Produit introuvable.");return;}
+  if(ex.qte<q){alert("Stock insuffisant. Reste: "+ex.qte);return;}
+  var montant=q*(pv||ex.p_vente);
+  ex.qte-=q;
+  logTrans(ex.id,"VENTE","Vente Cash: "+m+" "+d,montant,q);
+  $("s-qte").value="";
+  renderStock();updateSynthese();renderTrans();updateDash();
+  alert("Vente de "+q+" "+d+" effectuee ("+fmt(montant)+").");
+}
+
+function fillStock(id){
+  var s=DB.stock.find(function(x){return x.id===id;});if(!s)return;
+  $("s-marque").value=s.marque;$("s-desig").value=s.designation;
+  $("s-pa").value=s.p_achat;$("s-pv").value=s.p_vente;
+  $("s-seuil").value=s.seuil;$("s-qte").value="";$("s-qte").focus();
+}
+
+function deleteStock(id){
+  var s=DB.stock.find(function(x){return x.id===id;});
+  if(!confirm("Supprimer ce produit ?"))return;
+  DB.stock=DB.stock.filter(function(x){return x.id!==id;});
+  log("SUPPRESSION","Produit supprime: "+(s?s.marque+" "+s.designation:"#"+id));
+  dbSave();renderStock();updateSynthese();updateDash();
+}
+
+function totVendu(pid){return DB.transactions.filter(function(t){return t.produit_id===pid&&t.type==="VENTE";}).reduce(function(s,t){return s+(t.quantite||0);},0);}
+function totDetteEnCours(pid){return DB.dette_details.filter(function(dd){return dd.produit_id===pid&&DB.dettes.find(function(d){return d.id===dd.dette_id;});}).reduce(function(s,dd){return s+dd.quantite;},0);}
+
+function renderStock(){
+  var q=($("s-search")||{value:""}).value.toUpperCase();
+  var items=DB.stock.filter(function(s){return !q||s.marque.includes(q)||s.designation.includes(q);});
+  $("stockList").innerHTML=items.map(function(s){
+    var low=s.qte<=s.seuil;
+    var totA=DB.transactions.filter(function(t){return t.produit_id===s.id&&t.type==="ACHAT";}).reduce(function(a,t){return a+(t.quantite||0);},0);
+    var pu=s.p_vente-s.p_achat;
+    return "<div class=stock-row"+(low?" low":"")+" onclick=fillStock("+s.id+")>"
+      +"<div class=stock-name>"+s.marque+" | "+s.designation+"  <span style=font-weight:400;color:#7f8c8d;font-size:12px>Global: "+totA+"</span>"+(low?" <span style=color:var(--red)>⚠</span>":"")+"</div>"
+      +"<div class=stock-nums>"
+      +"<span>"+s.qte+"</span>"
+      +"<span style=color:#2ecc71>V:"+totVendu(s.id)+"</span>"
+      +"<span style=color:#e67e22>D:"+totDetteEnCours(s.id)+"</span>"
+      +"<span style=color:#7f8c8d>A:"+fmt(s.p_achat)+" V:"+fmt(s.p_vente)+"</span>"
+      +"<span style=color:#27ae60>+"+fmt(pu)+"</span>"
+      +"<span style=color:#aaa;font-size:11px>S:"+s.seuil+"</span>"
+      +"</div>"
+      +(ROLE==="admin"?"<button class="btn btn-red btn-sm" onclick="event.stopPropagation();deleteStock("+s.id+")">Suppr</button>":"")
+      +"</div>";
+  }).join("")||"<div style=padding:20px;color:#aaa;text-align:center>Aucun article</div>";
+}
+
+function updateSynthese(){
+  var qG=DB.transactions.filter(function(t){return t.type==="ACHAT";}).reduce(function(s,t){return s+(t.quantite||0);},0);
+  var qA=DB.stock.reduce(function(s,s2){return s+s2.qte;},0);
+  var qV=DB.transactions.filter(function(t){return t.type==="VENTE"&&(t.desc.startsWith("Vente Cash")||t.desc.startsWith("Dette sold"));}).reduce(function(s,t){return s+(t.quantite||0);},0);
+  var qD=DB.dette_details.filter(function(dd){return DB.dettes.find(function(d){return d.id===dd.dette_id;});}).reduce(function(s,dd){return s+dd.quantite;},0);
+  var vS=DB.stock.reduce(function(s,s2){return s+s2.qte*s2.p_vente;},0);
+  var vV=DB.transactions.filter(function(t){return t.type==="VENTE"&&!t.desc.startsWith("Dette sold");}).reduce(function(s,t){return s+t.montant;},0);
+  var vD=DB.dette_details.filter(function(dd){return DB.dettes.find(function(d){return d.id===dd.dette_id;});}).reduce(function(s,dd){return s+dd.quantite*dd.p_vente;},0);
+  $("syn-global").textContent=qG+" pcs";
+  $("syn-actuel").textContent=qA+" pcs";
+  $("syn-vendu").textContent=qV+" pcs";
+  $("syn-dette-qte").textContent=qD+" pcs";
+  $("syn-val-stock").textContent=fmt(vS);
+  $("syn-val-vendu").textContent=fmt(vV);
+  $("syn-val-dette").textContent=fmt(vD);
+  $("syn-capital").textContent=fmt(CAPITAL_FIXE+vS+vV);
+}
+
+function renderCmd(){
+  var al=DB.stock.filter(function(s){return s.qte<=s.seuil;});
+  if(!al.length){$("cmdList").innerHTML="<div style=background:#d4edda;color:#155724;border:1px solid #c3e6cb;border-radius:8px;padding:14px>Tout est en stock selon vos seuils !</div>";return;}
+  $("cmdList").innerHTML=al.map(function(a){return "<div class=cmd-row><div><span style=font-weight:700;color:#721c24>"+a.marque+" | "+a.designation+"</span> <span style=font-size:11px;color:#888>(Seuil: "+a.seuil+")</span></div><div style=font-family:Consolas;font-weight:700;color:#dc3545>Reste: "+a.qte+"</div></div>";}).join("");
+}
+function actualiserCmd(){renderCmd();$("cmd-time").textContent="Actualise a "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});}
+function printCmd(){
+  var al=DB.stock.filter(function(s){return s.qte<=s.seuil;});
+  if(!al.length){alert("Aucun article a commander !");return;}
+  var w=window.open("","_blank");
+  w.document.write("<!DOCTYPE html><html><head><meta charset=UTF-8><title>Commandes</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th{background:#2c3e50;color:#fff;padding:8px}td{padding:8px;border-bottom:1px solid #eee}</style></head><body><h2>FODISSCO EXPRESS - COMMANDES</h2><p>"+todayStr()+"</p><table><tr><th>N</th><th>Marque</th><th>Designation</th><th>Stock</th><th>Seuil</th></tr>"+al.map(function(a,i){return "<tr><td>"+(i+1)+"</td><td>"+a.marque+"</td><td>"+a.designation+"</td><td style=color:red>"+a.qte+"</td><td>"+a.seuil+"</td></tr>";}).join("")+"</table></body></html>");
+  w.print();
+}
+
+function addTransaction(){
+  var desc=$("t-desc").value.trim();
+  var mont=parseFloat($("t-mont").value)||0;
+  if(!desc||mont<=0){alert("Remplissez description et montant.");return;}
+  logTrans(0,"DIVERS",desc,mont,0);
+  $("t-desc").value="";$("t-mont").value="";
+  renderTrans();updateDash();
+}
+function deleteData(id){
+  var t=DB.transactions.find(function(x){return x.id===id;});if(!t)return;
+  var pk=["Dette soldee","Paiement Dette","Acompte initial","Remboursement annulation"];
+  if(pk.some(function(k){return t.desc.startsWith(k);})){alert("Impossible de supprimer une transaction liee a une dette.");return;}
+  if(!confirm("Annuler cette transaction ?"))return;
+  if(t.type==="ACHAT"&&t.produit_id){var s1=DB.stock.find(function(x){return x.id===t.produit_id;});if(s1)s1.qte=Math.max(0,s1.qte-(t.quantite||0));log("ANNULATION ACHAT",t.desc);}
+  else if(t.type==="VENTE"&&t.produit_id){var s2=DB.stock.find(function(x){return x.id===t.produit_id;});if(s2)s2.qte+=(t.quantite||0);log("ANNULATION VENTE",t.desc);}
+  else{log("ANNULATION DIVERS",t.desc);}
+  DB.transactions=DB.transactions.filter(function(x){return x.id!==id;});
+  dbSave();renderStock();renderTrans();updateDash();
+  alert("Transaction annulee.");
+}
+function renderTrans(){
+  var q=($("t-search")||{value:""}).value.toLowerCase();
+  var items=DB.transactions.filter(function(t){return !q||t.type.toLowerCase().includes(q)||t.desc.toLowerCase().includes(q);});
+  var pk=["Dette soldee","Paiement Dette","Acompte initial","Remboursement annulation"];
+  $("transList").innerHTML="<div class=tbl-wrap><table><thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Qte</th><th>Montant</th><th></th></tr></thead><tbody>"
+    +items.map(function(t){
+      var col=t.type==="VENTE"?"#2ecc71":"#e74c3c";
+      var badge=t.type==="VENTE"?"b-green":t.type==="ACHAT"?"b-blue":"b-red";
+      var prot=pk.some(function(k){return t.desc.startsWith(k);});
+      return "<tr><td style=font-family:Consolas;font-size:12px>"+t.date+"</td><td><span class=badge "+badge+">"+t.type+"</span></td><td>"+t.desc+"</td><td>"+((t.quantite||0)>0?t.quantite:"--")+"</td><td style=font-family:Consolas;font-weight:700;color:"+col+">"+fmt(t.montant)+"</td><td>"+(prot?"":"<button class=btn btn-red btn-sm onclick=deleteData("+t.id+")>Suppr</button>")+"</td></tr>";
+    }).join("")+"</tbody></table></div>";
+}
+
+// PIECES
+function ouvrirPieces(){selTemp={};totalCalc=0;$("pieces-search").value="";$("pieces-total").textContent="Total : 0 F";chargerPieces();openM("modalPieces");}
+function chargerPieces(){
+  var d=DB.stock.filter(function(s){return s.qte>0;});
+  if(!d.length){$("pieces-list").innerHTML="<div style=color:#aaa;text-align:center;padding:20px>Aucun produit en stock</div>";return;}
+  $("pieces-list").innerHTML=d.map(function(s){
+    var qs=selTemp[s.id]?selTemp[s.id].nb:0;
+    return "<div class=pieces-item id=pitem-"+s.id+" data-nom="+s.marque+"-"+s.designation+">"
+      +"<div style=flex:1><div style=font-weight:700;font-size:13px>"+s.marque+" "+s.designation+"</div>"
+      +"<div style=font-size:12px;color:#7f8c8d>"+fmt(s.p_vente)+" -- Stock: "+s.qte+"</div></div>"
+      +"<div style=display:flex;align-items:center;gap:6px>"
+      +"<button class="btn btn-red btn-sm" style=width:28px;padding:0;justify-content:center onclick=modQte("+s.id+",-1,"+s.qte+","+s.p_vente+")>-</button>"
+      +"<span id=qte-"+s.id+" style=font-family:Consolas;font-weight:700;font-size:14px;min-width:24px;text-align:center>"+qs+"</span>"
+      +"<button class="btn btn-blue btn-sm" style=width:28px;padding:0;justify-content:center onclick=modQte("+s.id+",1,"+s.qte+","+s.p_vente+")>+</button>"
+      +"</div></div>";
+  }).join("");
+}
+function modQte(id,delta,max,prix){
+  if(!selTemp[id]){var s=DB.stock.find(function(x){return x.id===id;});selTemp[id]={nb:0,nom:s.marque+" "+s.designation,prix:s.p_vente};}
+  var n=selTemp[id].nb+delta;if(n<0)n=0;if(n>max)n=max;
+  selTemp[id].nb=n;
+  var el=$("qte-"+id);if(el)el.textContent=n;
+  totalCalc=Object.values(selTemp).reduce(function(s,v){return s+v.prix*v.nb;},0);
+  $("pieces-total").textContent="Total : "+fmt(totalCalc);
+}
+function filtrerPieces(){
+  var q=$("pieces-search").value.toLowerCase();
+  document.querySelectorAll(".pieces-item").forEach(function(el){
+    el.style.display=el.dataset.nom.toLowerCase().replace(/-/g," ").includes(q)?"flex":"none";
+  });
+}
+function confirmerPieces(){
+  var liste=Object.values(selTemp).filter(function(v){return v.nb>0;});
+  if(!liste.length){alert("Selectionnez au moins une piece.");return;}
+  $("d-pieces").value=liste.map(function(v){return v.nom+" (x"+v.nb+")";}).join(", ");
+  $("d-accord").value=Math.round(totalCalc);
+  $("annulerPanierBtn").style.display="inline-flex";
+  $("openPiecesBtn").style.background="#27ae60";
+  closeM("modalPieces");
+}
+function annulerPanier(){
+  selTemp={};totalCalc=0;
+  $("d-pieces").value="";$("d-accord").value="";
+  $("annulerPanierBtn").style.display="none";
+  $("openPiecesBtn").style.background="var(--blue)";
+}
+
+function addDette(){
+  var nom=$("d-nom").value.trim(),ch=$("d-ch").value.trim(),tel=$("d-tel").value.trim();
+  var pieces=$("d-pieces").value.trim(),gest=$("d-gest").value.trim();
+  var echRaw=$("d-ech").value.trim(),accord=parseFloat($("d-accord").value)||0;
+  if(!nom||accord<=0||!pieces){alert("Remplissez les infos et les pieces !");return;}
+  var parts=echRaw.split(";").map(function(x){return x.trim();});
+  var r=prompt("Acompte verse par "+nom+" ? (Total: "+fmt(accord)+") Laisser vide si 0.");
+  var paye=parseFloat(r)||0,restant=accord-paye;
+  var id=DB.seq.dette++;
+  DB.dettes.unshift({id:id,client_nom:nom,numero_ch:ch,telephone:tel,designation_pieces:pieces,montant_accord:accord,montant_paye:paye,montant_restant:restant,echeances:echRaw,gestionnaire_chauffeur:gest,date_enregistrement:nowStr(),echeance1:parts[0]||"",echeance2:parts[1]||"",echeance3:parts[2]||"",montant_ech1:0,montant_ech2:0,montant_ech3:0,statut_ech1:"en_attente",statut_ech2:"en_attente",statut_ech3:"en_attente"});
+  if(paye>0)logTrans(0,"VENTE","Acompte initial: "+nom,paye,0);
+  log("NOUVELLE DETTE",nom+" | "+pieces+" | Accorde: "+fmt(accord)+" | Ech: "+echRaw);
+  dbSave();
+  ["d-nom","d-ch","d-tel","d-pieces","d-gest","d-ech","d-accord"].forEach(function(i){$(i).value="";});
+  annulerPanier();
+  renderDettes();renderTrans();updateDash();
+  alert("Dette de "+nom+" enregistree ! Accorde: "+fmt(accord)+" Acompte: "+fmt(paye)+" Reste: "+fmt(restant));
+}
+
+function openPay(id){
+  var d=DB.dettes.find(function(x){return x.id===id;});if(!d)return;
+  payId=id;
+  $("payTitle").textContent="Encaisser -- "+d.client_nom;
+  $("payInfo").textContent="Reste a payer: "+fmt(d.montant_restant);
+  $("payAmount").value="";openM("modalPay");
+}
+function confirmPay(){
+  var d=DB.dettes.find(function(x){return x.id===payId;});if(!d)return;
+  var v=parseFloat($("payAmount").value)||0;
+  if(v<=0){alert("Montant invalide.");return;}
+  if(v>d.montant_restant){alert("Le montant depasse le reste du !");return;}
+  d.montant_paye+=v;d.montant_restant-=v;
+  logTrans(0,"VENTE","Paiement Dette: "+d.client_nom,v,0);
+  dbSave();
+  if(d.montant_restant<=0){cloturerDette(d.id,d.client_nom);}
+  else{closeM("modalPay");renderDettes();renderTrans();updateDash();alert("Paiement de "+fmt(v)+" enregistre ! Reste: "+fmt(d.montant_restant));}
+}
+function cloturerDette(id_d,nom){
+  var dds=DB.dette_details.filter(function(x){return x.dette_id===id_d;}),totB=0;
+  dds.forEach(function(dd){
+    var mv=dd.p_vente*dd.quantite;totB+=(dd.p_vente-dd.p_achat)*dd.quantite;
+    var s=DB.stock.find(function(x){return x.id===dd.produit_id;});
+    var np=s?s.marque+" "+s.designation:"Produit #"+dd.produit_id;
+    DB.transactions.unshift({id:DB.seq.trans++,produit_id:dd.produit_id,type:"VENTE",desc:"Dette soldee: "+nom+" ("+np+")",montant:mv,quantite:dd.quantite,date:nowStr()});
+    log("VENTE","Dette soldee: "+nom+" -- "+np+" x"+dd.quantite+" ("+fmt(mv)+")");
+  });
+  DB.dette_details=DB.dette_details.filter(function(x){return x.dette_id!==id_d;});
+  DB.dettes=DB.dettes.filter(function(x){return x.id!==id_d;});
+  dbSave();closeM("modalPay");closeM("modalEch");
+  renderDettes();renderTrans();renderStock();updateDash();
+  alert("Dette de "+nom+" cloturee ! Benefice: "+fmt(totB));
+}
+function supprimerDette(id){
+  var d=DB.dettes.find(function(x){return x.id===id;});if(!d)return;
+  if(!confirm("Supprimer la dette de "+d.client_nom+" ?"))return;
+  var dds=DB.dette_details.filter(function(x){return x.dette_id===id;}),pr=[];
+  dds.forEach(function(x){var s=DB.stock.find(function(y){return y.id===x.produit_id;});if(s){s.qte+=x.quantite;pr.push(s.marque+" "+s.designation+" x"+x.quantite);}});
+  if(d.montant_paye>0)DB.transactions.unshift({id:DB.seq.trans++,produit_id:0,type:"DIVERS",desc:"Remboursement annulation dette: "+d.client_nom,montant:d.montant_paye,quantite:0,date:nowStr()});
+  DB.transactions=DB.transactions.filter(function(t){return !(t.desc.startsWith("Paiement Dette: "+d.client_nom)||t.desc.startsWith("Acompte initial: "+d.client_nom)||t.desc.startsWith("Dette soldee: "+d.client_nom));});
+  DB.dette_details=DB.dette_details.filter(function(x){return x.dette_id!==id;});
+  DB.dettes=DB.dettes.filter(function(x){return x.id!==id;});
+  log("ANNULATION DETTE","Annulation dette "+d.client_nom+" | Rembourse: "+fmt(d.montant_paye));
+  dbSave();renderDettes();renderStock();renderTrans();updateDash();
+  alert("Dette de "+d.client_nom+" annulee ! Stock remis: "+pr.join(", ")+" Rembourse: "+fmt(d.montant_paye));
+}
+function openModif(id){
+  var d=DB.dettes.find(function(x){return x.id===id;});if(!d)return;
+  modifId=id;
+  $("md-nom").value=d.client_nom;$("md-ch").value=d.numero_ch;$("md-tel").value=d.telephone;
+  $("md-gest").value=d.gestionnaire_chauffeur;$("md-ech").value=d.echeances;$("md-accord").value=d.montant_accord;
+  openM("modalModif");
+}
+function saveModif(){
+  var d=DB.dettes.find(function(x){return x.id===modifId;});if(!d)return;
+  var na=parseFloat($("md-accord").value);if(isNaN(na)){alert("Montant invalide.");return;}
+  d.client_nom=$("md-nom").value;d.numero_ch=$("md-ch").value;d.telephone=$("md-tel").value;
+  d.gestionnaire_chauffeur=$("md-gest").value;d.echeances=$("md-ech").value;
+  d.montant_accord=na;d.montant_restant=na-d.montant_paye;
+  log("MODIFICATION","Dette de "+d.client_nom+" mise a jour.");
+  dbSave();closeM("modalModif");renderDettes();updateDash();alert("Dette mise a jour !");
+}
+function renderDettes(){
+  var q=($("d-search")||{value:""}).value.toLowerCase();
+  var items=DB.dettes.filter(function(d){return !q||(d.client_nom+d.numero_ch+d.telephone+d.gestionnaire_chauffeur).toLowerCase().includes(q);});
+  $("detteList").innerHTML=items.map(function(d){
+    return "<div class=debt-card>"
+      +"<div class=debt-info>"
+        +"<div style=font-size:14px;font-weight:700;color:#1a73e8>"+d.client_nom+" | "+d.telephone+"</div>"
+        +"<div style=font-size:11px;color:#555;margin-top:2px>CH: "+d.numero_ch+" | Gest: "+d.gestionnaire_chauffeur+"</div>"
+        +"<div style=font-size:12px;font-style:italic;color:#e67e22;margin-top:4px>"+d.designation_pieces+"</div>"
+        +"<div style=font-size:11px;font-weight:700;color:#dc3545;margin-top:2px>Echeance: "+d.echeances+"</div>"
+      +"</div>"
+      +"<div class=debt-mnt>"
+        +"<div style=font-size:12px;color:#7f8c8d>Accorde: "+fmt(d.montant_accord)+"</div>"
+        +"<div style=font-size:12px;color:#2ecc71;font-weight:700>Deja paye: "+fmt(d.montant_paye)+"</div>"
+        +"<div style=font-family:Consolas;font-size:17px;font-weight:700;color:#e74c3c>RESTE: "+fmt(d.montant_restant)+"</div>"
+      +"</div>"
+      +"<div class=debt-btns>"
+        +"<button class="btn btn-green btn-sm" onclick=openPay("+d.id+")>ENCAISSER</button>"
+        +"<button class="btn btn-blue btn-sm" onclick=openModif("+d.id+")>MODIFIER</button>"
+        +"<button class="btn btn-red btn-sm" onclick=supprimerDette("+d.id+")>SUPPRIMER</button>"
+      +"</div></div>";
+  }).join("")||"<div style=padding:20px;color:#aaa;text-align:center>Aucune dette en cours</div>";
+}
+
+// ECHEANCES
+var JOURS={lundi:1,mardi:2,mercredi:3,jeudi:4,vendredi:5,samedi:6,dimanche:0};
+var COLS={retard:"#e74c3c",aujourd_hui:"#f39c12",a_venir:"#27ae60",payee:"#95a5a6"};
+var LABS={retard:"EN RETARD",aujourd_hui:"AUJOURD HUI",a_venir:"A VENIR",payee:"PAYEE"};
+var FILTRES=[{key:"tous",txt:"Tous",col:"#2c3e50"},{key:"retard",txt:"En retard",col:"#e74c3c"},{key:"aujourd_hui",txt:"Aujourd hui",col:"#f39c12"},{key:"a_venir",txt:"A venir",col:"#27ae60"},{key:"payee",txt:"Payee",col:"#95a5a6"}];
+
+function statEch(dateE,statE){
+  if(statE==="payee")return "payee";
+  if(!dateE||!dateE.trim())return null;
+  var d=dateE.trim().toLowerCase(),today=new Date();today.setHours(0,0,0,0);
+  if(JOURS[d]!==undefined){var dw=today.getDay();if(dw===JOURS[d])return "aujourd_hui";if(dw>JOURS[d])return "retard";return "a_venir";}
+  try{
+    var pts=dateE.trim().split("/");var yr=pts[2].length===2?"20"+pts[2]:pts[2];
+    var dt=new Date(yr,pts[1]-1,pts[0]);dt.setHours(0,0,0,0);
+    if(dt<today)return "retard";if(dt.getTime()===today.getTime())return "aujourd_hui";return "a_venir";
+  }catch(e){return null;}
+}
+
+function buildFiltres(){
+  $("filtreBtns").innerHTML=FILTRES.map(function(f){
+    var act=filtreActif===f.key;
+    return "<button class=filtre-btn style="border-color:"+f.col+";color:"+(act?"#fff":f.col)+";background:"+(act?f.col:"transparent")+"" onclick="setFiltre('"+f.key+"')">"+f.txt+"</button>";
+  }).join("");
+}
+function setFiltre(key){filtreActif=key;buildFiltres();renderEch();}
+
+function openPayEch(id,num,mont,nom,rest){
+  echId=id;echNum=num;echMont=mont;echNom=nom;echRest=rest;
+  $("echTitle").textContent="Paiement Echeance "+num;
+  $("echInfo").textContent="Paiement ech."+num+" de "+nom+" -- Prevu: "+fmt(mont)+" -- Reste total: "+fmt(rest);
+  $("echAmount").value="";openM("modalEch");
+}
+function confirmEch(){
+  var d=DB.dettes.find(function(x){return x.id===echId;});if(!d)return;
+  var v=parseFloat($("echAmount").value)||0;
+  if(v<=0){alert("Montant invalide.");return;}
+  if(v>echRest){alert("Le montant depasse le reste du !");return;}
+  d.montant_paye+=v;d.montant_restant-=v;
+  d["statut_ech"+echNum]="payee";
+  logTrans(0,"VENTE","Paiement Dette: "+echNom+" (Ech."+echNum+")",v,0);
+  dbSave();
+  if(d.montant_restant<=0){cloturerDette(d.id,d.client_nom);}
+  else{closeM("modalEch");renderEch();renderDettes();updateDash();alert("Paiement de "+fmt(v)+" enregistre ! Reste: "+fmt(d.montant_restant));}
+}
+
+function renderEch(){
+  if(!$("filtreBtns").innerHTML)buildFiltres();
+  var items=DB.dettes.filter(function(d){
+    if(filtreActif==="tous")return true;
+    return [1,2,3].some(function(n){return d["echeance"+n]&&statEch(d["echeance"+n],d["statut_ech"+n])===filtreActif;});
+  });
+  $("echList").innerHTML=items.map(function(d){
+    var badges=[1,2,3].filter(function(n){return d["echeance"+n]&&d["echeance"+n].trim();}).map(function(n){
+      var dateE=d["echeance"+n],statE=d["statut_ech"+n],montE=d["montant_ech"+n]||0;
+      var st=statEch(dateE,statE),col=COLS[st]||"#bbb",lab=LABS[st]||"--";
+      var dl=dateE.trim().toLowerCase(),aff=JOURS[dl]!==undefined?"Chaque "+dateE:dateE;
+      var affM=montE>0?fmt(montE):"--";
+      var btn=statE!=="payee"?"<button style="background:"+col+";border:none;color:#fff;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;margin-left:4px" onclick="openPayEch("+d.id+","+n+","+montE+",'"+d.client_nom.replace(/'/g,"")+"',"+d.montant_restant+")">$</button>":"";
+      return "<span class=ech-badge style="background:"+col+"18;color:"+col+";border-color:"+col+"">Ech."+n+" - "+aff+" - "+affM+" - "+lab+btn+"</span>";
+    }).join("");
+    return "<div class=ech-card>"
+      +"<div style=display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px>"
+        +"<div><span style=font-weight:700;color:#1a73e8>"+d.client_nom+"</span> | <span style=font-size:12px;color:#666>"+d.telephone+"</span> | <span style=font-size:12px;color:#666>"+d.gestionnaire_chauffeur+"</span></div>"
+        +"<div style=font-family:Consolas;font-size:12px;font-weight:700;color:#e74c3c>Accorde: "+fmt(d.montant_accord)+" Paye: "+fmt(d.montant_paye)+" RESTE: "+fmt(d.montant_restant)+"</div>"
+      +"</div>"
+      +"<div style=font-size:12px;font-style:italic;color:#e67e22;margin:4px 0>"+d.designation_pieces.substring(0,80)+"</div>"
+      +"<div class=ech-badges>"+badges+"</div>"
+      +"</div>";
+  }).join("")||"<div style=padding:20px;color:#aaa;text-align:center>Aucune echeance pour ce filtre.</div>";
+}
+
+function initBilanDates(){var n=new Date();$("b-mois").value=String(n.getMonth()+1).padStart(2,"0");$("b-annee").value=n.getFullYear();}
+function calculerBilan(){
+  var m=$("b-mois").value.trim().padStart(2,"0"),a=$("b-annee").value.trim();
+  if(!m||!a){alert("Remplissez mois et annee.");return;}
+  var pat="/"+m+"/"+a;
+  var ca=DB.transactions.filter(function(t){return t.type==="VENTE"&&t.date.includes(pat)&&!t.desc.startsWith("Dette sold");}).reduce(function(s,t){return s+t.montant;},0);
+  var dep=DB.transactions.filter(function(t){return(t.type==="ACHAT"||t.type==="DIVERS")&&t.date.includes(pat);}).reduce(function(s,t){return s+t.montant;},0);
+  var nb=DB.transactions.filter(function(t){return t.date.includes(pat);}).length;
+  var ben=ca-dep;
+  $("bilanCards").style.display="grid";
+  $("b-ca").textContent=fmt(ca);$("b-dep").textContent=fmt(dep);$("b-nb").textContent=nb;
+  $("b-ben").textContent=(ben>=0?"+":"")+fmt(ben);$("b-ben").style.color=ben>=0?"#006600":"#990000";
+  $("b-periode").textContent="Periode: "+m+"/"+a;
+  var trs=DB.transactions.filter(function(t){return t.date.includes(pat)&&!(t.type==="VENTE"&&t.desc.startsWith("Dette sold"));});
+  if(!trs.length){$("bilanDetail").innerHTML="<div style=color:#aaa;text-align:center;padding:30px>Aucune transaction pour "+m+"/"+a+"</div>";return;}
+  $("bilanDetail").innerHTML="<div class=tbl-wrap><table><thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Qte</th><th>Montant</th></tr></thead><tbody>"
+    +trs.map(function(t){var col=t.type==="VENTE"?"#2ecc71":"#e74c3c";var badge=t.type==="VENTE"?"b-green":t.type==="ACHAT"?"b-blue":"b-red";return "<tr><td style=font-family:Consolas;font-size:12px>"+t.date+"</td><td><span class=badge "+badge+">"+t.type+"</span></td><td>"+String(t.desc).substring(0,50)+"</td><td>"+(t.quantite||"--")+"</td><td style=font-family:Consolas;font-weight:700;color:"+col+">"+fmt(t.montant)+"</td></tr>";}).join("")+"</tbody></table></div>";
+}
+
+function calculerJournal(){
+  var date=$("j-date").value.trim();if(!date){alert("Saisissez une date.");return;}
+  var ventes=DB.transactions.filter(function(t){return t.type==="VENTE"&&t.date.startsWith(date)&&!t.desc.startsWith("Dette sold");});
+  var total=ventes.reduce(function(s,t){return s+t.montant;},0);
+  $("j-total").textContent=fmt(total);
+  if(!ventes.length){$("journalList").innerHTML="<div style=color:#aaa;text-align:center;padding:20px>Aucune vente pour cette date.</div>";return;}
+  $("journalList").innerHTML="<div class=tbl-wrap><table><thead><tr><th>N</th><th>Heure</th><th>Type</th><th>Description</th><th>Qte</th><th>Montant</th></tr></thead><tbody>"
+    +ventes.map(function(v,i){var h=v.date.indexOf(" ")>-1?v.date.split(" ")[1]:v.date;return "<tr><td>"+(i+1)+"</td><td style=font-family:Consolas>"+h+"</td><td><span class=badge b-green>VENTE</span></td><td>"+v.desc+"</td><td>"+(v.quantite||"--")+"</td><td style=font-family:Consolas;font-weight:700;color:#27ae60>"+fmt(v.montant)+"</td></tr>";}).join("")+"</tbody></table></div>";
+}
+function printJournal(){
+  var date=$("j-date").value.trim();
+  var ventes=DB.transactions.filter(function(t){return t.type==="VENTE"&&t.date.startsWith(date)&&!t.desc.startsWith("Dette sold");});
+  var total=ventes.reduce(function(s,t){return s+t.montant;},0);
+  var w=window.open("","_blank");
+  w.document.write("<!DOCTYPE html><html><head><meta charset=UTF-8><title>Vente Journaliere</title><style>body{font-family:Arial;padding:24px}.total{background:#d4edda;padding:12px;font-size:18px;font-weight:700;color:#155724;text-align:center;margin:10px 0;border-radius:6px}table{width:100%;border-collapse:collapse}th{background:#2c3e50;color:#fff;padding:8px}td{padding:8px;border-bottom:1px solid #eee}</style></head><body><h2>FODISSCO EXPRESS - VENTE JOURNALIERE</h2><p>"+date+"</p><div class=total>TOTAL: "+fmt(total)+"</div><table><tr><th>N</th><th>Heure</th><th>Description</th><th>Qte</th><th>Montant</th></tr>"+ventes.map(function(v,i){var h=v.date.indexOf(" ")>-1?v.date.split(" ")[1]:v.date;return "<tr><td>"+(i+1)+"</td><td>"+h+"</td><td>"+v.desc+"</td><td>"+(v.quantite||"--")+"</td><td>"+fmt(v.montant)+"</td></tr>";}).join("")+"</table></body></html>");
+  w.print();
+}
+
+function ouvrirMDP(){if(ROLE!=="admin"){alert("Acces reserve a l administrateur.");return;}$("new-mdp-admin").value="";$("new-mdp-vendeur").value="";$("confirm-mdp-actuel").value="";$("mdp-err").textContent="";openM("modalMDP");}
+function confirmerMDP(){
+  var nA=$("new-mdp-admin").value.trim();
+  var nV=$("new-mdp-vendeur").value.trim();
+  var actuel=$("confirm-mdp-actuel").value;
+  if(actuel!==COMPTES["fodissco"].mdp){$("mdp-err").textContent="Mot de passe actuel incorrect.";return;}
+  if(!nA&&!nV){$("mdp-err").textContent="Remplissez au moins un champ.";return;}
+  if(nA)COMPTES["fodissco"].mdp=nA;
+  if(nV)COMPTES["vendeur"].mdp=nV;
+  if(FB_OK&&window.fbSaveComptes){window.fbSaveComptes(COMPTES);}
+  else{localStorage.setItem("fodissco_comptes",JSON.stringify(COMPTES));}
+  localStorage.setItem("fodissco_mdp_change",Date.now().toString());
+  closeM("modalMDP");
+  alert("Mot(s) de passe change(s) ! Tous les comptes vont etre deconnectes.");
+  setTimeout(function(){deconnecter();},1000);
+}
+function deconnecter(){ROLE="admin";tentatives=3;$("userInput").value="";$("passInput").value="";$("loginErr").textContent="";$("app").style.display="none";$("loginOverlay").style.display="flex";}
+
+function initApp(){
+  $("topDate").textContent=todayStr();
+  if(FB_OK&&window.fbListen){
+    window.fbListen(function(data){
+      if(data&&data.stock){
+        DB=data;
+        var ap=PAGES.find(function(p){return $("page-"+p)&&$("page-"+p).classList.contains("active");});
+        if(ap)navigate(ap);
+        updateDash();
+      }
+    });
+  }
+  var ss=Date.now().toString();
+  localStorage.setItem("fodissco_session_start",ss);
+  setInterval(function(){
+    var mc=localStorage.getItem("fodissco_mdp_change");
+    var st=localStorage.getItem("fodissco_session_start");
+    if(mc&&st&&mc>st){alert("Les mots de passe ont ete modifies. Veuillez vous reconnecter.");deconnecter();}
+  },5000);
+  if(ROLE==="vendeur"){
+    document.querySelectorAll(".nav-btn").forEach(function(b){if(["dash","cmd","trans","bilan"].indexOf(b.dataset.page)>=0)b.style.display="none";});
+    var sb=$("syn-global");if(sb)sb.closest(".syn-box").style.display="none";
+  }
+  $("changePassBtn").addEventListener("click",ouvrirMDP);
+  $("closeMDPBtn").addEventListener("click",function(){closeM("modalMDP");});
+  $("cancelMDPBtn").addEventListener("click",function(){closeM("modalMDP");});
+  $("confirmMDPBtn").addEventListener("click",confirmerMDP);
+  $("menuBtn").addEventListener("click",toggleSidebar);
+  document.querySelectorAll(".nav-btn").forEach(function(b){b.addEventListener("click",function(){navigate(b.dataset.page);});});
+  $("dashRefreshBtn").addEventListener("click",updateDash);
+  $("addStockBtn").addEventListener("click",addStock);
+  if(ROLE==="vendeur")$("addStockBtn").style.display="none";
+  $("sellStockBtn").addEventListener("click",sellStock);
+  $("s-search").addEventListener("input",renderStock);
+  $("cmdRefreshBtn").addEventListener("click",actualiserCmd);
+  $("cmdPrintBtn").addEventListener("click",printCmd);
+  $("addTransBtn").addEventListener("click",addTransaction);
+  $("t-search").addEventListener("input",renderTrans);
+  $("addDetteBtn").addEventListener("click",addDette);
+  $("openPiecesBtn").addEventListener("click",ouvrirPieces);
+  $("closePiecesBtn").addEventListener("click",function(){closeM("modalPieces");});
+  $("cancelPiecesBtn").addEventListener("click",function(){closeM("modalPieces");});
+  $("confirmPiecesBtn").addEventListener("click",confirmerPieces);
+  $("annulerPanierBtn").addEventListener("click",annulerPanier);
+  $("d-search").addEventListener("input",renderDettes);
+  $("echRefreshBtn").addEventListener("click",renderEch);
+  $("bilanCalcBtn").addEventListener("click",calculerBilan);
+  $("journalCalcBtn").addEventListener("click",calculerJournal);
+  $("journalPrintBtn").addEventListener("click",printJournal);
+  $("closePayBtn").addEventListener("click",function(){closeM("modalPay");});
+  $("cancelPayBtn").addEventListener("click",function(){closeM("modalPay");});
+  $("confirmPayBtn").addEventListener("click",confirmPay);
+  $("closeModifBtn").addEventListener("click",function(){closeM("modalModif");});
+  $("cancelModifBtn").addEventListener("click",function(){closeM("modalModif");});
+  $("confirmModifBtn").addEventListener("click",saveModif);
+  $("closeEchBtn").addEventListener("click",function(){closeM("modalEch");});
+  $("cancelEchBtn").addEventListener("click",function(){closeM("modalEch");});
+  $("confirmEchBtn").addEventListener("click",confirmEch);
+  updateDash();navigate("dash");sync("ok");
+}
+
+window.addEventListener("DOMContentLoaded",function(){
+  $("loginBtn").addEventListener("click",tryLogin);
+  $("passInput").addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});
+  function onReady(){
+    FB_OK=true;
+    chargerComptes();
+  }
+  if(window.FB_READY){onReady();}
+  else{
+    document.addEventListener("firebase-ready",onReady);
+    setTimeout(function(){if(!FB_OK){chargerComptes();}},5000);
+  }
+});
+</script>
+</body>
+</html>
